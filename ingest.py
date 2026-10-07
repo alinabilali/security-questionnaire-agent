@@ -1,4 +1,8 @@
 from pathlib import Path
+from sentence_transformers import SentenceTransformer, util
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
 
 def load_chunks(docs_folder):
     chunks = []
@@ -37,6 +41,12 @@ def search(query, chunks, k=3):
     top = [chunk for score, chunk in scored[:k]]
     return top
 
+def search_embed(query, chunks, chunk_vecs, k=3):
+    query_vec = model.encode(query)
+    scores = util.cos_sim(query_vec,chunk_vecs)[0]
+    top_indexes = scores.argsort(descending=True)[:k]
+    return [chunks[i] for i in top_indexes]
+
 if __name__ == "__main__":
     chunks = load_chunks("docs")
     print(len(chunks), "chunks")
@@ -48,8 +58,10 @@ if __name__ == "__main__":
     ("Do your staff need a second factor to log in to company systems?", "AC-1.1"),
 ]
 
+    chunk_vecs = model.encode([c["title"] + ". " + c["text"] for c in chunks])
     for question, expected in tests:
-        results = search(question, chunks)
+        # results = search(question, chunks)
+        results = search_embed(question, chunks, chunk_vecs)
         ids = [c["id"] for c in results]
         print(question)
         print("  top 3:", ids)
