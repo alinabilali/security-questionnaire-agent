@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QuestionnaireAnswer",
+  "description": "The only shape the answerer is allowed to return.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["answer", "citations", "confidence", "answerable", "conflict"],
+  "properties": {
+    "answer": {
+      "type": "string",
+      "description": "Answer text drawn only from the cited chunks. Empty string when the docs do not cover the question."
+    },
+    "citations": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[A-Z]{2}-[0-9]+\\.[0-9]+$" },
+      "uniqueItems": true,
+      "description": "IDs of the chunks the answer relies on, e.g. AC-1.1."
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low"]
+    },
+    "answerable": {
+      "type": "boolean",
+      "description": "True only if the docs support an answer."
+    },
+    "conflict": {
+      "type": "boolean",
+      "description": "True if two cited chunks contradict each other."
+    }
+  },
+  "allOf": [
+    {
+      "description": "Normal answer: needs at least one citation and no conflict.",
+      "if": {
+        "required": ["answerable"],
+        "properties": { "answerable": { "const": true } }
+      },
+      "then": {
+        "properties": {
+          "answer": { "minLength": 1 },
+          "citations": { "minItems": 1 },
+          "conflict": { "const": false }
+        }
+      }
+    },
+    {
+      "description": "Conflict: not answerable, and both sides must be cited.",
+      "if": {
+        "required": ["conflict"],
+        "properties": { "conflict": { "const": true } }
+      },
+      "then": {
+        "properties": {
+          "answerable": { "const": false },
+          "citations": { "minItems": 2 }
+        }
+      }
+    },
+    {
+      "description": "Docs are silent: no answer text and no citations.",
+      "if": {
+        "required": ["answerable", "conflict"],
+        "properties": {
+          "answerable": { "const": false },
+          "conflict": { "const": false }
+        }
+      },
+      "then": {
+        "properties": {
+          "answer": { "maxLength": 0 },
+          "citations": { "maxItems": 0 }
+        }
+      }
+    }
+  ]
+}
