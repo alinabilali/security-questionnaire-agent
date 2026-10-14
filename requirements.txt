@@ -1,0 +1,4 @@
+anthropic==1.13.0
+jsonschema==4.26.0
+python-dotenv==1.2.4
+sentence-transformers==6.1.0
